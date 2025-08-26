@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 import os
 import shutil
 import uuid
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated , Optional
 import json
 
@@ -11,6 +12,15 @@ import json
 from controller import ParkingSpotDetector, ExperienceLevel
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change to your Flutter app URL in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 app.mount("/static", StaticFiles(directory="static"), name='static')
 
