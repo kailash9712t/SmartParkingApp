@@ -5,14 +5,16 @@ import os
 import shutil
 import uuid
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Annotated , Optional
+from typing import Annotated, Optional
 import json
+from PIL import Image
 
 # Assuming ParkingSpotDetector and ExperienceLevel are correctly defined in controller.py
 from controller import ParkingSpotDetector, ExperienceLevel
 
 app = FastAPI()
 
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Change to your Flutter app URL in production
@@ -21,8 +23,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-app.mount("/static", StaticFiles(directory="static"), name='static')
+# Mount static directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def icon():
@@ -32,9 +34,11 @@ async def icon():
 async def home_root():
     return {"name": "kailash"}
 
+# Upload directory
 UPLOAD_DIRECTORY = "images"
+os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
-# Helper function to delete a specific file
+# Helper function to delete uploaded file
 def delete_uploaded_file(path: str):
     if os.path.exists(path) and os.path.isfile(path):
         try:
@@ -45,10 +49,7 @@ def delete_uploaded_file(path: str):
     else:
         print(f"Path '{path}' does not exist or is not a file.")
 
-# Ensure the upload directory exists once at startup
-os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
-
-# Fixed: Remove trailing slash to match client requests
+# Upload endpoint
 @app.post("/upload_image")
 async def upload_image(
     background_tasks: BackgroundTasks,
@@ -56,8 +57,9 @@ async def upload_image(
     prefer_entrance: Annotated[bool, Form()] = False,
     prefer_exit: Annotated[bool, Form()] = False,
     experience: Annotated[int, Form()] = -1,
-    entrance_coords : Annotated[Optional[str], Form()] = None,
-    exit_coords : Annotated[Optional[str], Form()] = None
+    entrance_coords: Annotated[Optional[str], Form()] = None,
+    exit_coords: Annotated[Optional[str], Form()] = None,
+    device_pixel: Annotated[Optional[str], Form()] = None
 ):
     # Check for empty file
     if not image.filename:
@@ -68,18 +70,19 @@ async def upload_image(
     image_response = None
 
     try:
-        # Fixed: Use unique filename to prevent conflicts
+        # Generate unique filename
         file_extension = os.path.splitext(image.filename)[1]
         prefix_name = uuid.uuid4()
         unique_filename = f"{prefix_name}{file_extension}"
         file_path = os.path.join(UPLOAD_DIRECTORY, unique_filename)
 
-        print("Writing file...")
+        print(f"Saving upload as {unique_filename}...")
+
+        # Save uploaded file to disk
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
-        print("End of writing file.")
 
-        # Determine the experience level from the integer input
+        # Determine experience level
         experience_level = None
         if experience == 0:
             experience_level = ExperienceLevel.BEGINNER
@@ -87,22 +90,20 @@ async def upload_image(
             experience_level = ExperienceLevel.INTERMEDIATE
         elif experience >= 2:
             experience_level = ExperienceLevel.EXPERT
-        # else: experience_level remains None
 
-        print(unique_filename)
+        # Parse JSON inputs
+        entrance_tuple = tuple(json.loads(entrance_coords))
+        exit_tuple = tuple(json.loads(exit_coords))
+        pixel_tuple = tuple(json.loads(device_pixel))
 
-        entrance_list = json.loads(entrance_coords)
-        exit_list = json.loads(exit_coords)
-
-        entrance_tuple = tuple(entrance_list)
-        exit_tuple = tuple(exit_list)
-
+        # Run detector
         detector = ParkingSpotDetector(
             model_path="static/model.pt",
-            entrance_coords=entrance_tuple, #(0,200)
-            exit_coords=exit_tuple, #(610,200)
+            entrance_coords=entrance_tuple,
+            exit_coords=exit_tuple,
             result=file_path,
-            filename= prefix_name
+            filename=prefix_name,
+            device_pixel=pixel_tuple
         )
 
         best_spot = detector.start(
@@ -110,21 +111,41 @@ async def upload_image(
             exit=prefer_exit,
             experience=experience_level,
             file_path=file_path
-        ) 
+        )
 
     except Exception as e:
         print(f"Upload image error: {e}")
-        # Re-raise as HTTPException to provide a proper error response
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
+    
     finally:
-        # Fixed: Close file properly
-        if hasattr(image, 'file') and image.file:
+        # Close file properly
+        if hasattr(image, "file") and image.file:
             image.file.close()
-        # Schedule the uploaded file for deletion after processing
+
+        # Prepare response and cleanup
         if file_path:
-            image_response = FileResponse(f"images/{prefix_name}_output{file_extension}")
+            image_response = FileResponse(f"images/{prefix_name}_output.png")
             image_response.headers["best_spot"] = str(best_spot)
             background_tasks.add_task(delete_uploaded_file, file_path)
-            background_tasks.add_task(delete_uploaded_file, f"images/{prefix_name}_output{file_extension}")
+            background_tasks.add_task(delete_uploaded_file, f"images/{prefix_name}_output.png")
 
-    return image_response 
+    return image_response
+
+def coordinates_to_percentage(coords ,  device_pixel):
+    total_height = device_pixel[1]
+    total_width = device_pixel[0]
+
+    height_coords = coords[1]
+    width_coords = coords[0]
+
+    return [(height_coords/total_height) * 100,( width_coords/total_width ) * 100 ]
+
+def percentage_to_coordinates(percentage, device_pixel):
+    height = percentage[1]
+    width = percentage[0]
+
+    total_height = device_pixel[1]
+    total_width = device_pixel[0]
+
+    return [(height * total_height)/100,(width * total_width)/100]
+    

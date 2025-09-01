@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smartpart/Page/SecondPage/State/second_page.dart';
 import 'package:smartpart/Page/SecondPage/UI/second_page.dart';
+import 'package:smartpart/Page/SelectCoords/UI/select_coords.dart';
 import 'package:smartpart/Page/ThirdPage/UI/third_page.dart';
 import 'package:smartpart/Page/UploadImage/State/upload_image.dart';
 import 'package:smartpart/Widgets/progressindicator.dart';
@@ -57,13 +58,15 @@ class _UploadImageState extends State<UploadImage> {
                         () => model.navigateFirstToSecond(context),
                       );
                     } else if (current == 2) {
+                      child = SelectCoords();
+                    } else if (current == 3) {
                       child = SecondPage(
                         function:
                             () => context
                                 .read<SecondPageModel>()
                                 .navigateToSecondToThird(context),
                       );
-                    } else if (current == 3) {
+                    } else if (current == 4) {
                       child = ParkingPreferencePage();
                     } else {
                       child = const SizedBox.shrink();
@@ -76,16 +79,13 @@ class _UploadImageState extends State<UploadImage> {
                         Animation<double> animation,
                       ) {
                         final inFromRight = Tween<Offset>(
-                          begin: const Offset(
-                            1.0,
-                            0.0,
-                          ), 
+                          begin: const Offset(1.0, 0.0),
                           end: Offset.zero,
                         ).animate(animation);
 
                         final outToLeft = Tween<Offset>(
                           begin: Offset.zero,
-                          end: const Offset(-1.0, 0.0), 
+                          end: const Offset(-1.0, 0.0),
                         ).animate(animation);
 
                         final isIncoming = child.key == ValueKey(current);

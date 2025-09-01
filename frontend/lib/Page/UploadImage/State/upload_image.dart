@@ -10,6 +10,7 @@ class UploadImageModel extends ChangeNotifier {
   String filename = "upload_image.dart";
   double totalPage = 3;
   double current = 1;
+  Uint8List? image;
 
   void pickImage() async {
     try {
@@ -19,7 +20,11 @@ class UploadImageModel extends ChangeNotifier {
 
       if (tempFile == null) return;
 
+      image = await tempFile.readAsBytes();
+
       file = File(tempFile.path);
+
+      print(tempFile.path);
 
       notifyListeners();
     } catch (error) {
@@ -50,7 +55,7 @@ class UploadImageModel extends ChangeNotifier {
   }
 
   void nextPageNavigate() {
-    if (current == 3) return;
+    if (current == 4) return;
     current++;
     notifyListeners();
   }

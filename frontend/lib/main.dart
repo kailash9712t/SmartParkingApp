@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:smartpart/Page/SecondPage/State/second_page.dart';
+import 'package:smartpart/Page/SelectCoords/State/select_coords.dart';
 import 'package:smartpart/Page/ThirdPage/State/third_page.dart';
 import 'package:smartpart/Page/UploadImage/State/upload_image.dart';
 import 'package:smartpart/Page/Utils/routes.dart';
@@ -16,6 +17,7 @@ void main() {
         ChangeNotifierProvider(create: (context) => UploadImageModel()),
         ChangeNotifierProvider(create: (context) => SecondPageModel()),
         ChangeNotifierProvider(create: (context) => ThirdPageModel()),
+        ChangeNotifierProvider(create: (context) => SelectCoordsModel())
       ],
       child: MainApp(),
     ),

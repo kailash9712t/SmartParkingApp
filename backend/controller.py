@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import math
 from typing import List, Tuple, Optional
 from enum import Enum
+from PIL import Image
 
 
 class ExperienceLevel(Enum):
@@ -13,14 +14,15 @@ class ExperienceLevel(Enum):
 
 class ParkingSpotDetector:
     
-    def __init__(self, model_path: str, entrance_coords: Tuple[int, int], exit_coords: Tuple[int, int], result,filename):
-        self.results = result
+    def __init__(self, model_path: str, entrance_coords: Tuple[int, int], exit_coords: Tuple[int, int], result,filename, device_pixel):
+        self.results = result 
         self.model = YOLO(model_path)
         self.entrance_coords = entrance_coords
         self.exit_coords = exit_coords
         self.free_spaces = []
         self.parking_data = []
         self.filename = filename
+        self.device_pixel = device_pixel
     
     def detect_parking_spaces(self, image_path: str, confidence: float = 0.5) -> List[List[float]]:
         self.results = self.model(image_path, conf=confidence)
@@ -205,13 +207,13 @@ class ParkingSpotDetector:
             weight = 'bold' if spot['spot_id'] == best_spot_id else 'normal'
             
             plt.text(x, y, f"{spot['spot_id']}", 
-                    fontsize=8, color=color, weight=weight,
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+                    fontsize=35, color=color, weight=weight,
+                    bbox=dict(boxstyle="round,pad=0.6", facecolor='white', alpha=1))
         
         plt.scatter(*self.entrance_coords, color='green', s=100, marker='s', label='Entrance')
         plt.scatter(*self.exit_coords, color='orange', s=100, marker='s', label='Exit')
         
-        plt.legend()
+        plt.legend() 
         plt.title('Parking Spot Detection and Recommendation')
         plt.axis('off')
         plt.savefig(f"images/{self.filename}_output.png")
